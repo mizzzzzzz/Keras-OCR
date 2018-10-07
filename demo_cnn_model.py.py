@@ -8,71 +8,53 @@ from keras.utils  import np_utils
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 import csv
 import time
+NUM_OF_DIGIT = 6
+NUM_OF_DOMAIN = 10
 
-dic19 = {'2':0, '3':1, '4':2, '5':3, '7':4, '9':5, 'a':6, 'c':7, 'f':8, 'h':9, 'k':10, 'm':11, 'n':12, 'p':13, 'q':14, 'r':15, 't':16, 'y':17, 'z':18}
-def to_onelist(text):
-	label_list = []
-	for c in text:
-		onehot = [0 for _ in range(19)]
-		onehot[ dic19[c] ] = 1
-		label_list.append(onehot)
-	return label_list
+def toOnelist(text):
+    labelList = []
+    for c in text:
+        oneHot = [0 for _ in range(NUM_OF_DOMAIN)]
+        oneHot[int(c)] = 1
+        labelList.append(oneHot)
+    return labelList
 
-def to_text(l_list):
-	text=[]
-	pos = []
-	for i in range(4):
-		for j in range(19):
-			if(l_list[i][j]):
-				pos.append(j)
-
-	for i in range(4):
-		char_idx = pos[i]
-		text.append(list(dic19.keys())[list(dic19.values()).index(char_idx)])
-		return "".join(text)
-
-def to_text2(int):
-	text = []
-	text.append(list(dic19.keys())[list(dic19.values()).index(int)])
-	return "".join(text)
+def toText(list):
+    text=""
+    for i in range(NUM_OF_DIGIT):
+        for j in range(NUM_OF_DOMAIN):
+            if(list[i][j]):
+                text += str(j)
 
 print('model loading...')
-model = load_model('model/cnn_model.hdf5')
+model = load_model('./model/cnn_model.hdf5')
 
-
-test_num = 1+5000 #test number
+testStart = 1001
+testEnd = 5001 #test number
 
 print("Reading data...")
-x_train = np.stack([np.array(Image.open("/data/" + str(index) + ".jpg"))/255.0 for index in range(1, test_num, 1)])
+x_train = np.stack([np.array(Image.open("./img_p/" + str(index) + ".jpg"))/255.0 for index in range(testStart, testEnd, 1)])
 
 print('predict start')
-tStart = time.time()#計時開始
-
 prediction = model.predict(x_train)
 print('preficted ')
-resultlist = ["" for _ in range(test_num-1)]
+resultlist = ["" for _ in range(testEnd - testStart + 1)]
 
 for predict in prediction:
-	for index in range(test_num-1):
-		resultlist[index] += to_text2(np.argmax(predict[index]))
+	for index in range(testEnd - testStart):
+		resultlist[index] += str(np.argmax(predict[index]))
 
-tEnd = time.time()#計時結束
+#traincsv = open('/label.csv', 'r', encoding = 'utf8')
+#cipher_label = [row[0] for row in csv.reader(traincsv)]
+#read_label =  [to_onelist(row[0]) for row in csv.reader(traincsv)]
 
-
-traincsv = open('/label.csv', 'r', encoding = 'utf8')
-cipher_label = [row[0] for row in csv.reader(traincsv)]
-read_label =  [to_onelist(row[0]) for row in csv.reader(traincsv)]
-
-count = 0
-correct = 0
+count = 1001 
+#correct = 0
 for result in resultlist:
-	print(result, cipher_label[count])
-	if result == cipher_label[count]:
-		correct += 1
-	count  +=1
-
-print(correct/count) #答對率
-#列印計時結果
-print ('It cost %f sec' % (tEnd - tStart)) #會自動做近位
+	print(str(count) + " : " + result)
+	# if result == cipher_label[count]:
+		# correct += 1
+	
+	count += 1
 
 

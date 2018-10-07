@@ -8,91 +8,81 @@ from keras.layers import Input, Dense, Dropout, Flatten, Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.utils  import np_utils
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
+from keras import optimizers
+
 import csv
 
-dic19 = {'2':0, '3':1, '4':2, '5':3, '7':4, '9':5, 'a':6, 'c':7, 'f':8, 'h':9, 'k':10, 'm':11, 'n':12, 'p':13, 'q':14, 'r':15, 't':16, 'y':17, 'z':18}
+NUM_OF_DIGIT = 6
+NUM_OF_DOMAIN = 10
 
-def to_onelist(text):
-    label_list = []
+def toOnelist(text):
+    labelList = []
     for c in text:
-        onehot = [0 for _ in range(19)]
-        onehot[ dic19[c] ] = 1
-        label_list.append(onehot)
-    return label_list
+        oneHot = [0 for _ in range(NUM_OF_DOMAIN)]
+        oneHot[int(c)] = 1
+        labelList.append(oneHot)
+    return labelList
 
-def to_text(l_list):
-    
-    text=[]
-    pos = []
-    for i in range(4):
-        for j in range(19):
-            if(l_list[i][j]):
-                pos.append(j)
-
-    for i in range(4):
-        char_idx = pos[i]
-        text.append(list(dic19.keys())[list(dic19.values()).index(char_idx)])
-        return "".join(text)
-
+def toText(list):
+    text=""
+    for i in range(NUM_OF_DIGIT):
+        for j in range(NUM_OF_DOMAIN):
+            if(list[i][j]):
+                text += str(j)
 
 
 #creat CNN model
 print('Creating CNN model...')
-tensor_in = Input((48, 140, 3))
-tensor_out = tensor_in
-tensor_out = Conv2D(filters=32, kernel_size=(3, 3), padding='same', activation='relu')(tensor_out)
-tensor_out = Conv2D(filters=32, kernel_size=(3, 3), activation='relu')(tensor_out)
-tensor_out = MaxPooling2D(pool_size=(2, 2))(tensor_out)
-tensor_out = Conv2D(filters=64, kernel_size=(3, 3), padding='same', activation='relu')(tensor_out)
-tensor_out = Conv2D(filters=64, kernel_size=(3, 3), activation='relu')(tensor_out)
-tensor_out = MaxPooling2D(pool_size=(2, 2))(tensor_out)
-tensor_out = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu')(tensor_out)
-tensor_out = Conv2D(filters=128, kernel_size=(3, 3), activation='relu')(tensor_out)
-tensor_out = BatchNormalization(axis=1)(tensor_out)
-tensor_out = MaxPooling2D(pool_size=(2, 2))(tensor_out)
-tensor_out = Conv2D(filters=256, kernel_size=(3, 3), padding='same', activation='relu')(tensor_out)
-tensor_out = Conv2D(filters=256, kernel_size=(3, 3), padding='same', activation='relu')(tensor_out)
-tensor_out = MaxPooling2D(pool_size=(2, 2))(tensor_out)
-tensor_out = Conv2D(filters=512, kernel_size=(3, 3), padding='same', activation='relu')(tensor_out)
-tensor_out = BatchNormalization(axis=1)(tensor_out)
-tensor_out = MaxPooling2D(pool_size=(2, 2))(tensor_out)
+tensorIn = Input((48, 140, 3))
+tensorOut = tensorIn
+tensorOut = Conv2D(filters=32, kernel_size=(3, 3), padding='same')(tensorOut)
+tensorOut = BatchNormalization(axis=1)(tensorOut)
+tensorOut = Conv2D(filters=32, kernel_size=(3, 3), activation='relu')(tensorOut)
+tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
 
-tensor_out = Flatten()(tensor_out)
-tensor_out = Dropout(0.5)(tensor_out)
+tensorOut = Conv2D(filters=64, kernel_size=(3, 3), padding='same')(tensorOut)
+tensorOut = BatchNormalization(axis=1)(tensorOut)
+tensorOut = Conv2D(filters=64, kernel_size=(3, 3), activation='relu')(tensorOut)
+tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
 
-tensor_out = [Dense(19, name='digit1', activation='softmax')(tensor_out),\
-              Dense(19, name='digit2', activation='softmax')(tensor_out),\
-              Dense(19, name='digit3', activation='softmax')(tensor_out),\
-              Dense(19, name='digit4', activation='softmax')(tensor_out)]
+tensorOut = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu')(tensorOut)
+tensorOut = Conv2D(filters=128, kernel_size=(3, 3), activation='relu')(tensorOut)
+#tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
+#tensorOut = BatchNormalization(axis=1)(tensorOut)
+#tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
 
-model = Model(inputs=tensor_in, outputs=tensor_out)
-model.compile(loss='categorical_crossentropy', optimizer='Adamax', metrics=['accuracy'])
+tensorOut = Flatten()(tensorOut)
+#tensorOut = Dropout(0.5)(tensorOut)
+
+tensorOut = [Dense(NUM_OF_DOMAIN, name='digit1', activation='softmax')(tensorOut),\
+              Dense(NUM_OF_DOMAIN, name='digit2', activation='softmax')(tensorOut),\
+              Dense(NUM_OF_DOMAIN, name='digit3', activation='softmax')(tensorOut),\
+              Dense(NUM_OF_DOMAIN, name='digit4', activation='softmax')(tensorOut),\
+			  Dense(NUM_OF_DOMAIN, name='digit5', activation='softmax')(tensorOut),\
+			  Dense(NUM_OF_DOMAIN, name='digit6', activation='softmax')(tensorOut)]
+
+model = Model(inputs=tensorIn, outputs=tensorOut)
+#model.compile(loss='categorical_crossentropy', optimizer='Adamax', metrics=['accuracy'])
+model.compile( loss = "categorical_crossentropy", optimizer = 'adam', metrics=['accuracy'])
 model.summary()
               
-print("Reading training data...")
-train_data = np.stack([np.array(Image.open("/img f/" + str(index) + ".jpg"))/255.0 for index in range(1, 10001, 1)])
-traincsv = open('/label.csv', 'r', encoding = 'utf8')
-read_label =  [to_onelist(row[0]) for row in csv.reader(traincsv)]
-train_label = [[] for _ in range(4)]
-for arr in read_label:
-    for index in range(4):
-        train_label[index].append(arr[index])
-train_label = [arr for arr in np.asarray(train_label)]
-print("Shape of train data:", train_data.shape)
+print("Reading data...")
 
-print("Reading validation data...")
-vali_data = np.stack([np.array(Image.open("/img v/"+ str(index) + ".jpg"))/255.0 for index in range(10001, 11001, 1)])
-valicsv = open('/label_v.csv', 'r', encoding = 'utf8')
-read_label = [to_onelist(row[0]) for row in csv.reader(valicsv)]
-vali_label = [[] for _ in range(4)]
-for arr in read_label:
-    for index in range(4):
-        vali_label[index].append(arr[index])
-vali_label = [arr for arr in np.asarray(vali_label)]
-print("Shape of train data:", vali_data.shape)
+dataCsv = open('./label.csv', 'r', encoding = 'utf8')
+readLabel = [toOnelist(row[0]) for row in csv.reader(dataCsv)]
+numOfTrainData = 1 + int(len(readLabel) * 2 / 3)
+
+trainLabel = [[] for _ in range(NUM_OF_DIGIT)]
+for arr in readLabel:
+    for index in range(NUM_OF_DIGIT):
+        trainLabel[index].append(arr[index])
+trainLabel = [arr for arr in np.asarray(trainLabel)]
 
 
-filepath='model/cnn_model.hdf5'
+trainData = np.stack([np.array(Image.open("./img_p/" + str(index) + ".jpg"))/255.0 for index in range(1, len(readLabel) + 1, 1)])
+print("Shape of train data:", trainData.shape)
+
+filepath='./model/cnn_model.hdf5'
 try:
     model = load_model(filepath)
     print('model is loaded...')
@@ -102,9 +92,9 @@ except:
 
 checkpoint = ModelCheckpoint(filepath, monitor='val_digit4_acc', verbose=1, save_best_only=True, mode='max')
 earlystop = EarlyStopping(monitor='val_loss', patience=8, verbose=1, mode='auto')
-tensorBoard = TensorBoard(log_dir = '/Users/garys/Desktop/keras cnn/new model/logs', histogram_freq = 1)
-callbacks_list = [tensorBoard, earlystop, checkpoint]
-model.fit(train_data, train_label, batch_size=50, epochs=40, verbose=2, validation_data=(vali_data, vali_label), callbacks=callbacks_list)
-#.fit(train_data, train_label, validation_split=0.2, batch_size=50, epochs=20, verbose=2, callbacks=callbacks_list)
+tensorBoard = TensorBoard(log_dir = './logs', histogram_freq = 1)
+callbacksList = [tensorBoard, earlystop, checkpoint]
+#model.fit(trainData, trainLabel, batch_size=50, epochs=40, verbose=2, validation_data=(validData, validLabel), callbacks=callbacksList)
+model.fit(trainData, trainLabel, validation_split=0.1, batch_size=50, epochs=40, verbose=2, callbacks=callbacksList)
 # tensorboard --logdir= (dist)
 
