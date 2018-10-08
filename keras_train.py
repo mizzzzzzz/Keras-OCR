@@ -35,24 +35,24 @@ def toText(list):
 print('Creating CNN model...')
 tensorIn = Input((48, 140, 3))
 tensorOut = tensorIn
+tensorOut = Conv2D(filters=16, kernel_size=(3, 3), padding='same')(tensorOut)
+tensorOut = BatchNormalization(axis=1)(tensorOut)
+tensorOut = Conv2D(filters=16, kernel_size=(3, 3), activation='relu')(tensorOut)
+tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
+
 tensorOut = Conv2D(filters=32, kernel_size=(3, 3), padding='same')(tensorOut)
 tensorOut = BatchNormalization(axis=1)(tensorOut)
 tensorOut = Conv2D(filters=32, kernel_size=(3, 3), activation='relu')(tensorOut)
 tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
 
-tensorOut = Conv2D(filters=64, kernel_size=(3, 3), padding='same')(tensorOut)
-tensorOut = BatchNormalization(axis=1)(tensorOut)
-tensorOut = Conv2D(filters=64, kernel_size=(3, 3), activation='relu')(tensorOut)
-tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
-
-tensorOut = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu')(tensorOut)
-tensorOut = Conv2D(filters=128, kernel_size=(3, 3), activation='relu')(tensorOut)
+#tensorOut = Conv2D(filters=128, kernel_size=(3, 3), padding='same', activation='relu')(tensorOut)
+#tensorOut = Conv2D(filters=128, kernel_size=(3, 3), activation='relu')(tensorOut)
 #tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
 #tensorOut = BatchNormalization(axis=1)(tensorOut)
 #tensorOut = MaxPooling2D(pool_size=(2, 2))(tensorOut)
 
 tensorOut = Flatten()(tensorOut)
-#tensorOut = Dropout(0.5)(tensorOut)
+tensorOut = Dropout(0.5)(tensorOut)
 
 tensorOut = [Dense(NUM_OF_DOMAIN, name='digit1', activation='softmax')(tensorOut),\
               Dense(NUM_OF_DOMAIN, name='digit2', activation='softmax')(tensorOut),\
@@ -95,6 +95,6 @@ earlystop = EarlyStopping(monitor='val_loss', patience=8, verbose=1, mode='auto'
 tensorBoard = TensorBoard(log_dir = './logs', histogram_freq = 1)
 callbacksList = [tensorBoard, earlystop, checkpoint]
 #model.fit(trainData, trainLabel, batch_size=50, epochs=40, verbose=2, validation_data=(validData, validLabel), callbacks=callbacksList)
-model.fit(trainData, trainLabel, validation_split=0.1, batch_size=50, epochs=40, verbose=2, callbacks=callbacksList)
+model.fit(trainData, trainLabel, validation_split=0.3, batch_size=500, epochs=40, verbose=2, callbacks=callbacksList)
 # tensorboard --logdir= (dist)
 
